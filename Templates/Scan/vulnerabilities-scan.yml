@@ -1,0 +1,6 @@
+parameters:
+    buildGoSettingsFile: ''
+steps:
+    - bash: |
+        echo vulnerabilities scan task
+      displayName: Vulnerabilities Scan Task

@@ -1,0 +1,24 @@
+parameters:
+    projectName: '' 
+    releaseName: ''
+    chartVersion: ''
+    namespace: ''
+    azureContainerRegistryName: ''
+    azureSubscription: ''
+    upgradeParameters: '' 
+
+steps:
+    - template: ../Common/helm-init.yml
+      parameters:
+        azureSubscription: ${{parameters.azureSubscription}}
+        azureContainerRegistryName: ${{parameters.azureContainerRegistryName}}
+        connectToAcr: true
+    
+    - task: AzureCLI@2
+      displayName: Deploy the application version ${{parameters.chartVersion}} to namespace 
+      inputs:
+          azureSubscription: ${{parameters.azureSubscription}} 
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            helm upgrade --namespace ${{parameters.namespace}} ${{parameters.upgradeParameters}} --install --force --version ${{parameters.chartVersion}} --wait ${{parameters.releaseName}} ${{parameters.azureContainerRegistryName}}/${{parameters.projectName}}

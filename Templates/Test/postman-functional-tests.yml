@@ -1,0 +1,7 @@
+parameters:
+    scenario: ''
+    gate: ''
+steps:
+    - bash: |
+        echo postman test task
+      displayName: Postman Tests Task

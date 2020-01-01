@@ -1,0 +1,60 @@
+parameters:
+    codeRootDir: ''
+    verbose: ''
+    runTests: ''
+
+steps:
+    - task: NodeTool@0
+      displayName: 'Install Node $(nodeVersionSpec)'
+      inputs:
+        versionSpec: $(nodeVersionSpec)
+
+    - task: Npm@1
+      displayName: 'npm install dependencies'
+      inputs:
+          command: custom
+          workingDir: ${{parameters.codeRootDir}}
+          verbose: ${{parameters.verbose}}
+          customCommand: "install --loglevel=warn --unsafe-perm"
+
+    - task: Npm@1
+      displayName: npm lint
+      inputs:
+          command: custom
+          workingDir: ${{parameters.codeRootDir}}
+          verbose: ${{parameters.verbose}}
+          customCommand: "run lint"
+
+    - task: Npm@1
+      displayName: 'npm test'
+      inputs:
+          command: custom
+          workingDir: ${{parameters.codeRootDir}}
+          verbose: ${{parameters.verbose}}
+          customCommand: "run test"
+      condition: and(succeeded(), ne('${{ parameters.runTests }}', 'none'))
+
+    - task: Npm@1
+      displayName: 'npm cover'
+      inputs:
+          command: custom
+          workingDir: ${{parameters.codeRootDir}}
+          verbose: ${{parameters.verbose}}
+          customCommand: "run cover"
+      condition: and(succeeded(), ne('${{ parameters.runTests }}', 'none'))
+
+    - task: PublishTestResults@2
+      displayName: publish test results
+      inputs:
+          mergeTestResults: true
+          testResultsFiles: '**/reports/**.xml'
+          testRunTitle: 'Unit Tests'
+      condition: and(succeeded(), ne('${{ parameters.runTests }}', 'none'))
+
+    - task: publishCodeCoverageResults@1
+      displayName: 'publish code coverage'
+      inputs:
+          codeCoverageTool: Cobertura
+          summaryFileLocation: '**/reports/**coverage.xml'
+          reportDirectory: '**/reports'
+      condition: and(succeeded(), ne('${{ parameters.runTests }}', 'none'))

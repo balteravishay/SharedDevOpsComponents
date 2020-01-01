@@ -1,0 +1,27 @@
+parameters:
+  azureSubscription: '' 
+  azureContainerRegistryName: '' 
+  connectToAcr: ''
+steps:
+
+- task: HelmInstaller@0
+  displayName: Install Helm $(helmVersion)
+  inputs:
+    helmVersion: $(helmVersion)
+    checkLatestHelmVersion: false
+    kubectlVersion: $(kubectlVersion)
+    checkLatestKubectl: false
+
+- ${{ if eq(parameters.connectToAcr, 'true') }}:
+
+  - task: AzureCLI@2
+    displayName: Connect ACR ${{parameters.azureContainerRegistryName}} as Helm repo
+    inputs:
+        azureSubscription: ${{parameters.azureSubscription}}
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+            helm init --client-only
+            az configure --defaults acr=${{parameters.azureContainerRegistryName}}
+            az acr helm repo add
+            helm repo update

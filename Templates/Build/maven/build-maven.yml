@@ -1,0 +1,8 @@
+parameters:
+    buildMavenSettingsFile: ''
+    runTests: ''
+steps:
+    - bash: |
+        echo build maven task with parameter: ${{parameters.buildMavenSettingsFile}}
+        echo testing maven with arg: ${{parameters.runTests}}
+      displayName: Build and test Maven

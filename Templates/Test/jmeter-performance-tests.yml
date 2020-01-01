@@ -1,0 +1,10 @@
+parameters:
+    scenario: ''
+    gate: ''
+steps:
+    - bash: |
+        echo jmeter performance test task
+      displayName: Jmeter Performance Tests task
+    - bash: |
+        echo jmeter stress test task
+      displayName: Jmeter Stress Tests task

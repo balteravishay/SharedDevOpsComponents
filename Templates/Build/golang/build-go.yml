@@ -1,0 +1,8 @@
+parameters:
+    buildGoSettingsFile: ''
+    runTests: ''
+steps:
+    - bash: |
+        echo build golang task with parameter: ${{parameters.buildGoSettingsFile}}
+        echo testing golang with arg: ${{parameters.runTests}}
+      displayName: Build and test Golang

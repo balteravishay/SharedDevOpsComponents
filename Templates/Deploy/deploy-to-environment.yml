@@ -1,0 +1,46 @@
+parameters:
+    deployType: ''
+    projectName: '' 
+    releaseName: ''
+    chartVersion: ''
+    namespace: ''
+    azureContainerRegistryName: ''
+    azureSubscription: ''
+    upgradeParameters: '' 
+
+steps:
+  - task: Kubernetes@1
+    displayName: login
+    inputs:
+      command: login
+
+  - ${{ if eq(parameters.deployType, 'helm-native') }}:
+
+    - template: deploy-helm-native.yml
+      parameters:
+        projectName: ${{parameters.projectName}}
+        releaseName: ${{parameters.releaseName}}
+        chartVersion: ${{parameters.chartVersion}}
+        namespace: ${{parameters.namespace}}
+        azureContainerRegistryName: ${{parameters.azureContainerRegistryName}}
+        azureSubscription: ${{parameters.azureSubscription}}
+        upgradeParameters: ${{parameters.upgradeParameters}}
+
+  - ${{ if eq(parameters.deployType, 'helm-weblogic') }}:
+
+    - template: deploy-weblogic.yml
+      parameters:
+        projectName: ${{parameters.projectName}}
+      
+  - ${{ if eq(parameters.deployType, 'gitops') }}:
+
+    - template: deploy-gitops.yml
+      parameters:
+        projectName: ${{parameters.projectName}}        
+
+  - ${{ if eq(parameters.deployType, 'fabrikate') }}:
+
+    - template: deploy-fabrikate.yml
+      parameters:
+        projectName: ${{parameters.projectName}}        
+        

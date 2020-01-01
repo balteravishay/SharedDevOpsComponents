@@ -1,0 +1,7 @@
+parameters:
+    scenario: ''                 
+    gate: ''
+steps:
+    - bash: |
+        echo gatling test task
+      displayName: Gatling Test Task

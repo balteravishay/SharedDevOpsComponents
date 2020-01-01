@@ -1,0 +1,6 @@
+parameters:
+    projectName: '' 
+steps:
+    - bash: |
+        echo deploy ${{parameters.projectName}} using weblogic operator
+      displayName: Deploy with Weblogic Task

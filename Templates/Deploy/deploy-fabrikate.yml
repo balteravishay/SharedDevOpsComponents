@@ -1,0 +1,6 @@
+parameters:
+    projectName: '' 
+steps:
+    - bash: |
+        echo deploy ${{parameters.projectName}} using fabrikate
+      displayName: Deploy with Fabrikate Task

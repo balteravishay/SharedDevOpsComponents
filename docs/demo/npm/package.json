@@ -1,0 +1,57 @@
+{
+    "name": "mydriving-user-api",
+    "description": "This is the User API for the MyDriving service",
+    "version": "1.0.0",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/Azure-Samples/openhack-devops-team.git"
+    },
+    "bugs": "http://github.com/Azure-Samples/openhack-devops-team/issues",
+    "dependencies": {
+        "body-parser": "^1.18.3",
+        "express": "^4.16.3",
+        "express4-tedious": "^0.3.0",
+        "morgan": "^1.9.0",
+        "swaggerize-express": "^4.0.5",
+        "swagmock": "1.0.0",
+        "swagger-ui-express": "^3.0.10",
+        "tedious": "^2.6.4"
+    },
+    "devDependencies": {
+        "eslint": "^5",
+        "is-my-json-valid": "^2.17.2",
+        "js-yaml": "^3.12.0",
+        "nyc": "^13.0.1",
+        "supertest": "^3.1.0",
+        "swagger-parser": "^4.1.0",
+        "tap-junit": "^2.0.0",
+        "tape": "^4.9.1"
+    },
+    "nyc": {
+        "check-coverage": true,
+        "per-file": false,
+        "lines": 25,
+        "statements": 8,
+        "functions": 9,
+        "branches": 1,
+        "reporter": [
+            "cobertura",
+            "html"
+        ],
+        "require": [],
+        "cache": true,
+        "all": true,
+        "temp-directory": "./reports-tmp",
+        "report-dir": "./reports"
+    },
+    "scripts": {
+        "test": "tape 'tests/**/*.js' | tap-junit --output reports --name userprofile-report",
+        "cover": "nyc tape -- 'tests/**/*.js' --cov",
+        "lint": "eslint .",
+        "regenerate": "yo swaggerize:test --framework express --apiPath './config/swagger.json'"
+    },
+    "generator-swaggerize": {
+        "version": "4.1.0"
+    },
+    "main": "./server"
+}

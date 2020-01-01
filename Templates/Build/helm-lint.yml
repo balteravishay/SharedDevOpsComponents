@@ -1,0 +1,33 @@
+parameters:
+  helmChartsFolder: '' 
+  gate: ''
+steps:
+    
+    - task: HelmDeploy@0
+      displayName: Helm lint
+      inputs:
+        connectionType: None
+        command: lint
+        arguments: ${{parameters.helmChartsFolder}}
+    
+    - task: HelmDeploy@0
+      displayName: Helm Install Plugin Kubeval 
+      inputs:
+        connectionType: None
+        command: plugin
+        arguments: 'install https://github.com/instrumenta/helm-kubeval'
+
+    - task: HelmDeploy@0
+      displayName: Helm Run Plugin Kubeval 
+      continueOnError:  ${{parameters.gate}}
+      inputs:
+        connectionType: None
+        command: kubeval
+        arguments: ${{parameters.helmChartsFolder}} --ignore-missing-schemas --strict
+
+    - task: HelmDeploy@0
+      displayName: Helm Remove Plugin Kubeval 
+      inputs:
+        connectionType: None
+        command: plugin
+        arguments: remove kubeval

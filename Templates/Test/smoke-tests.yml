@@ -1,0 +1,6 @@
+parameters:
+    buildGoSettingsFile: ''
+steps:
+    - bash: |
+        echo smoke test task
+      displayName: Smoke Tests Task

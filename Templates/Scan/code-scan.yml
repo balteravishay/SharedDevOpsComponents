@@ -1,0 +1,6 @@
+parameters:
+    buildGoSettingsFile: ''
+steps:
+    - bash: |
+        echo code scan task
+      displayName: Code Scan Task

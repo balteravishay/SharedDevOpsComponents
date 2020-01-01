@@ -1,0 +1,281 @@
+parameters:
+  linuxAgentPool: ''
+  windowsAgentPool: ''
+  buildType: ''
+  projectName: ''
+  codeRootDir: ''
+  deployType: ''
+  helmCharts: ''
+  initSteps: []
+  docker: true
+  helm: true
+  imageName: ''
+  verbose: false
+  PR: {
+    enabled: '',
+    gate: '',
+    credscan: '',
+    codescan: '',
+    vulnerabilitiesscan: ''
+  }
+  CI: {
+    enabled: '',
+    azureContainerRegistry: '', 
+    azureContainerRegistryName: '',
+    azureSubscription: '',
+    scan: '',
+    gate: ''
+  }
+  AUTOMATION: {
+    enabled: '',
+    azureSubscription: '', 
+    azureContainerRegistry: '',
+    azureContainerRegistryName: '',
+    environmentNamespace: '', 
+    namespace: '',
+    upgradeParameters: '',
+  }
+  FUNCTIONAL: {
+    enabled: '',
+    azureSubscription: '', 
+    azureContainerRegistry: '',
+    azureContainerRegistryName: '',
+    environmentNamespace: '', 
+    namespace: '',
+    upgradeParameters: '',
+    testType: ''
+  }
+  NONFUNCTIONAL: {
+    enabled: '',
+    azureSubscription: '', 
+    azureContainerRegistry: '',
+    azureContainerRegistryName: '',
+    environmentNamespace: '', 
+    namespace: '',
+    upgradeParameters: '',
+  }
+
+stages:
+  - ${{ if eq(parameters.PR.enabled, 'true') }}:  
+    - stage: PR
+      displayName: 'Pull Request Validations'
+      jobs:
+        - job: PRJobLinux
+          displayName: Pull Request Validation on Linux
+          pool: 
+            vmImage: ${{parameters.linuxAgentPool}}
+          variables:
+            helmChartsFolder: ${{parameters.codeRootDir}}/${{parameters.helmCharts}}/${{parameters.projectName}}
+          steps:
+            - ${{parameters.initSteps}}
+
+            - template: Templates/Build/build.yml
+              parameters:
+                buildType: ${{parameters.buildType}}
+                runTests: slim
+                buildGoSettingsFile: ${{parameters.buildGoSettingsFile}}
+                buildMavenSettingsFile: ${{parameters.buildMavenSettingsFile}}
+                verbose: ${{parameters.verboses}}
+                codeRootDir: ${{parameters.codeRootDir}}
+
+            - ${{ if eq(parameters.helm, 'true') }}:
+
+              - template: Templates/Common/helm-init.yml
+                parameters:
+                  connectToAcr: false
+              - template: Templates/Build/helm-lint.yml
+                parameters:
+                  helmChartsFolder: $(helmChartsFolder)
+                  gate: '${{parameters.PR.gate}}'
+
+            - ${{ if eq(parameters.PR.codescan, 'true') }}:
+              - template: Templates/Scan/code-scan.yml
+                parameters:
+                  buildType: ${{parameters.buildType}}
+                  sonarEndpoint: ${{parameters.PR.codeScanEndpoint}}
+                  projectName: ${{parameters.projectName}}
+                  codeRootDir: ${{parameters.codeRootDir}}
+
+            - ${{ if eq(parameters.PR.vulnerabilitiesscan, 'true') }}:
+              - template: Templates/Scan/vulnerabilities-scan.yml
+                parameters:
+                  buildType: ${{parameters.buildType}}
+                  sonarEndpoint: ${{parameters.vulnerabilitiesScanEndpoint}}
+                  projectName: ${{parameters.projectName}}
+                  codeRootDir: ${{parameters.codeRootDir}}
+
+        - job: PRJobWindows
+          displayName: Pull Request Validation on Windows
+          dependsOn: PRJobLinux
+          pool: 
+            vmImage: ${{parameters.windowsAgentPool}}
+          steps:
+            - ${{ if eq(parameters.PR.credscan, 'true') }}:
+              - template: Templates/Scan/cred-scan.yml
+                parameters:
+                  codeRootDir: ${{parameters.codeRootDir}}
+
+  - ${{ if eq(parameters.CI.enabled, 'true') }}:        
+    - stage: CI
+      displayName: 'Continuous Integration'
+      jobs:
+        - job: CIJob
+          displayName: Building Testing Packaging and publishing artifacts
+          pool: 
+            vmImage: ${{parameters.linuxAgentPool}}
+          variables:
+            helmChartsFolder: ${{parameters.codeRootDir}}/${{parameters.helmCharts}}/${{parameters.projectName}}
+          steps:
+            - ${{parameters.initSteps}}
+            
+            - template: Templates/Build/build.yml
+              parameters:
+                buildType: ${{parameters.buildType}}
+                runTests: full
+                buildGoSettingsFile: ${{parameters.buildGoSettingsFile}}
+                buildMavenSettingsFile: ${{parameters.buildMavenSettingsFile}}
+                verbose: ${{parameters.verboses}}
+                codeRootDir: ${{parameters.codeRootDir}}
+
+            - ${{ if eq(parameters.docker, 'true') }}:
+              - template: Templates/Build/docker-build-scan-push.yml
+                parameters:
+                  azureContainerRegistry: ${{parameters.CI.azureContainerRegistry}}
+                  codeRootDir: ${{parameters.codeRootDir}}
+                  scan: ${{parameters.CI.scan}}
+                  tag: $(Build.BuildId)
+                  imageName: ${{parameters.imageName}}
+
+            - ${{ if eq(parameters.helm, 'true') }}:
+              - template: Templates/Common/helm-init.yml
+                parameters:
+                  connectToAcr: true
+                  azureSubscription: ${{parameters.CI.azureSubscription}}
+                  azureContainerRegistryName: ${{parameters.CI.azureContainerRegistryName}}
+
+              - template: Templates/Build/publish-helm-chart.yml
+                parameters:
+                  chartVersion: $(Build.BuildId)
+                  ArtifactStagingDirectory: $(Build.ArtifactStagingDirectory)
+                  helmChartsFolder: $(helmChartsFolder)
+                  azureContainerRegistryName: ${{parameters.CI.azureContainerRegistryName}}
+                  azureSubscription: ${{parameters.CI.azureSubscription}}
+                  projectName: ${{parameters.projectName}}
+                  
+
+  - ${{ if eq(parameters.AUTOMATION.enabled, 'true') }}:        
+    - stage: Automation
+      displayName: 'Deploy to Automation environment'
+      dependsOn: CI
+      jobs:
+      - deployment: Init
+        displayName: Initialize Environment Automation
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        environment: ${{parameters.AUTOMATION.environmentNamespace}}
+        strategy:
+          runOnce:
+            deploy:
+              steps:    
+              - template: Templates/Deploy/deploy-to-environment.yml
+                parameters:
+                  deployType: ${{parameters.deployType}}
+                  projectName: ${{parameters.projectName}}
+                  releaseName: ${{parameters.projectName}}-${{parameters.AUTOMATION.namespace}}
+                  chartVersion: $(Build.BuildId)
+                  namespace: ${{parameters.AUTOMATION.namespace}}
+                  azureContainerRegistryName: ${{parameters.AUTOMATION.azureContainerRegistryName}}
+                  azureSubscription: ${{parameters.AUTOMATION.azureSubscription}}
+                  upgradeParameters: ${{parameters.AUTOMATION.upgradeParameters}}
+      - job: Tests
+        dependsOn: Init
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        displayName: 'Automation Testing'
+        steps:
+          - template: Templates/Test/smoke-tests.yml
+            parameters:
+              dependsOn: Init
+              scenario: ${{parameters.AUTOMATION.postmanScenario}} 
+              testResultsFiles: ${{parameters.AUTOMATION.postmanTestResults}}
+              endpoint: ${{parameters.AUTOMATION.dnsName}}
+              gate: ${{parameters.AUTOMATION.gate}}
+
+  - ${{ if eq(parameters.FUNCTIONAL.enabled, 'true') }}:        
+    - stage: Functional
+      displayName: 'Deploy to Functional environment'
+      dependsOn: Automation
+      jobs:
+      - deployment: Init
+        displayName: Initialize Environment Functional
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        environment: ${{parameters.FUNCTIONAL.environmentNamespace}}
+        strategy:
+          runOnce:
+            deploy:
+              steps:    
+              - template: Templates/Deploy/deployToEnvironment.yml
+                parameters:
+                  deployType: ${{parameters.deployType}}
+                  projectName: ${{parameters.projectName}}
+                  releaseName: ${{parameters.projectName}}-${{parameters.FUNCTIONAL.namespace}}
+                  chartVersion: $(Build.BuildId)
+                  namespace: ${{parameters.FUNCTIONAL.namespace}}
+                  azureContainerRegistryName: ${{parameters.FUNCTIONAL.azureContainerRegistryName}}
+                  azureSubscription: ${{parameters.FUNCTIONAL.azureSubscription}}
+                  upgradeParameters: ${{parameters.FUNCTIONAL.upgradeParameters}}
+      - job: Tests
+        dependsOn: Init
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        displayName: 'Functional Testing'
+        steps:
+          - ${{ if eq(parameters.Functional.testType, 'galing') }}:        
+            - template: Templates/Test/galing-functional-tests.yml
+              parameters:
+                dependsOn: Init
+                scenario: ${{parameters.FUNCTIONAL.gatlingScenario}} 
+                gate: ${{parameters.FUNCTIONAL.gate}}
+          - ${{ if eq(parameters.Functional.testType, 'postman') }}:        
+            - template: Templates/Test/postman-functional-tests.yml
+              parameters:
+                dependsOn: Init
+                scenario: ${{parameters.FUNCTIONAL.postmanScenario}}                 
+                gate: ${{parameters.FUNCTIONAL.gate}}
+
+  - ${{ if eq(parameters.NONFUNCTIONAL.enabled, 'true') }}:        
+    - stage: NonFunctional
+      displayName: 'Deploy to non Functional environment'
+      dependsOn: Functional
+      jobs:
+      - deployment: Init
+        displayName: Initialize Environment non Functional
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        environment: ${{parameters.NONFUNCTIONAL.environmentNamespace}}
+        strategy:
+          runOnce:
+            deploy:
+              steps:    
+              - template: Templates/Deploy/deployToEnvironment.yml
+                parameters:
+                  deployType: ${{parameters.deployType}}
+                  projectName: ${{parameters.projectName}}
+                  releaseName: ${{parameters.projectName}}-${{parameters.NONFUNCTIONAL.namespace}}
+                  chartVersion: $(Build.BuildId)
+                  namespace: ${{parameters.NONFUNCTIONAL.namespace}}
+                  azureContainerRegistryName: ${{parameters.FUNCTIONAL.azureContainerRegistryName}}
+                  azureSubscription: ${{parameters.NONFUNCTIONAL.azureSubscription}}
+                  upgradeParameters: ${{parameters.NONFUNCTIONAL.upgradeParameters}}
+      - job: Tests
+        dependsOn: Init
+        pool: 
+          vmImage: ${{parameters.linuxAgentPool}}
+        displayName: 'Performance and Stress Tests'
+        steps:
+          - template: Templates/Test/jmeter-performance-tests.yml
+            parameters:
+              dependsOn: Init
+              scenario: ${{parameters.NONFUNCTIONAL.jmeterScenario}} 
+              gate: ${{parameters.NONFUNCTIONAL.gate}}

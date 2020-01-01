@@ -1,0 +1,28 @@
+parameters:
+    chartVersion: ''
+    ArtifactStagingDirectory: ''
+    helmChartsFolder: ''
+    azureContainerRegistryName: ''
+    azureSubscription: ''
+    projectName: ''
+
+steps:
+        
+    - task: HelmDeploy@0
+      displayName: Helm Package
+      inputs:
+        connectionType: None
+        save: false
+        destination: ${{parameters.ArtifactStagingDirectory}}
+        chartPath: ${{parameters.helmChartsFolder}}
+        command: package
+        arguments: --version ${{parameters.chartVersion}}
+  
+    - task: AzureCLI@2
+      displayName: Push chart to ACR ${{parameters.azureContainerRegistryName}}
+      inputs:
+        azureSubscription: ${{parameters.azureSubscription}}
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+            az acr helm push -n ${{parameters.azureContainerRegistryName}} ${{parameters.ArtifactStagingDirectory}}/${{parameters.projectName}}-${{parameters.chartVersion}}.tgz

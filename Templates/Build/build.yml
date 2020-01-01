@@ -1,0 +1,31 @@
+parameters:
+    buildType: ''
+    runTests: ''
+    buildGoSettingsFile: ''
+    buildMavenSettingsFile: ''
+    verbose: ''
+    codeRootDir: ''
+
+steps:
+- ${{ if eq(parameters.buildType, 'maven') }}:
+
+  - template: maven/build-maven.yml
+    parameters:
+      buildMavenSettingsFile: ${{parameters.buildMavenSettingsFile}}
+      runTests: ${{parameters.runTests}}
+      
+
+- ${{ if eq(parameters.buildType, 'npm') }}:
+
+  - template: npm/build-npm.yml
+    parameters:
+      runTests: ${{parameters.runTests}}
+      verbose: ${{parameters.verbose}}
+      codeRootDir: ${{parameters.codeRootDir}}
+
+- ${{ if eq(parameters.buildType, 'golang') }}:
+
+  - template: golang/build-go.yml
+    parameters:
+      buildGoSettingsFile: ${{parameters.buildGoSettingsFile}}
+      runTests: ${{parameters.runTests}}
