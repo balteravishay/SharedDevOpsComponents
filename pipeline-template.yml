@@ -7,6 +7,7 @@ parameters:
   deployType: ''
   helmCharts: ''
   initSteps: []
+  deploySteps: []
   docker: true
   helm: true
   imageName: ''
@@ -187,6 +188,7 @@ stages:
                   azureContainerRegistryName: ${{parameters.AUTOMATION.azureContainerRegistryName}}
                   azureSubscription: ${{parameters.AUTOMATION.azureSubscription}}
                   upgradeParameters: ${{parameters.AUTOMATION.upgradeParameters}}
+                  deploySteps: ${{parameters.deploySteps}}
       - job: Tests
         dependsOn: Init
         pool: 
@@ -215,7 +217,7 @@ stages:
           runOnce:
             deploy:
               steps:    
-              - template: Templates/Deploy/deployToEnvironment.yml
+              - template: Templates/Deploy/deploy-to-environment.yml
                 parameters:
                   deployType: ${{parameters.deployType}}
                   projectName: ${{parameters.projectName}}
@@ -225,6 +227,7 @@ stages:
                   azureContainerRegistryName: ${{parameters.FUNCTIONAL.azureContainerRegistryName}}
                   azureSubscription: ${{parameters.FUNCTIONAL.azureSubscription}}
                   upgradeParameters: ${{parameters.FUNCTIONAL.upgradeParameters}}
+                  deploySteps: ${{parameters.deploySteps}}
       - job: Tests
         dependsOn: Init
         pool: 
@@ -258,7 +261,7 @@ stages:
           runOnce:
             deploy:
               steps:    
-              - template: Templates/Deploy/deployToEnvironment.yml
+              - template: Templates/Deploy/deploy-to-environment.yml
                 parameters:
                   deployType: ${{parameters.deployType}}
                   projectName: ${{parameters.projectName}}
@@ -268,6 +271,7 @@ stages:
                   azureContainerRegistryName: ${{parameters.FUNCTIONAL.azureContainerRegistryName}}
                   azureSubscription: ${{parameters.NONFUNCTIONAL.azureSubscription}}
                   upgradeParameters: ${{parameters.NONFUNCTIONAL.upgradeParameters}}
+                  deploySteps: ${{parameters.deploySteps}}
       - job: Tests
         dependsOn: Init
         pool: 

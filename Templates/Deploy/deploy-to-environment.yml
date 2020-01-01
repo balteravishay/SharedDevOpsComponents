@@ -7,12 +7,15 @@ parameters:
     azureContainerRegistryName: ''
     azureSubscription: ''
     upgradeParameters: '' 
+    deploySteps: []
 
 steps:
   - task: Kubernetes@1
     displayName: login
     inputs:
       command: login
+
+  - ${{parameters.deploySteps}}
 
   - ${{ if eq(parameters.deployType, 'helm-native') }}:
 
