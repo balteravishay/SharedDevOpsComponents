@@ -7,17 +7,17 @@ parameters:
     codeRootDir: ''
 
 steps:
-- ${{ if eq(parameters.buildType, 'maven') }}:
+- ${{ if eq(parameters.buildType, 'java') }}:
 
-  - template: maven/build-maven.yml
+  - template: java/build-maven.yml
     parameters:
       buildMavenSettingsFile: ${{parameters.buildMavenSettingsFile}}
       runTests: ${{parameters.runTests}}
       
 
-- ${{ if eq(parameters.buildType, 'npm') }}:
+- ${{ if eq(parameters.buildType, 'nodejs') }}:
 
-  - template: npm/build-npm.yml
+  - template: nodejs/build-npm.yml
     parameters:
       runTests: ${{parameters.runTests}}
       verbose: ${{parameters.verbose}}
