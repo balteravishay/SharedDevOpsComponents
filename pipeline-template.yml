@@ -234,8 +234,8 @@ stages:
           vmImage: ${{parameters.linuxAgentPool}}
         displayName: 'Functional Testing'
         steps:
-          - ${{ if eq(parameters.Functional.testType, 'galing') }}:        
-            - template: Templates/Test/galing-functional-tests.yml
+          - ${{ if eq(parameters.Functional.testType, 'gatling') }}:        
+            - template: Templates/Test/gatling-functional-tests.yml
               parameters:
                 dependsOn: Init
                 scenario: ${{parameters.FUNCTIONAL.gatlingScenario}} 
